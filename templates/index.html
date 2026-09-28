@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SmartQuiz AI</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <header class="header">
+    <div class="logo">
+        SmartQuiz <span>AI</span>
+    </div>
+
+    <p class="tagline">
+        Learn Smarter. Practice Better. 🚀
+    </p>
+</header>
+
+    <main class="container">
+
+        <div class="welcome">
+            <h1>What do you want to learn?</h1>
+            <p class="subtitle">
+    Create your own AI-powered quiz in seconds.
+</p>
+            <p>Enter any topic or study material and generate questions using AI.</p>
+        </div>
+
+        <div class="card">
+
+            <label for="prompt">
+                Enter your prompt
+            </label>
+
+            <textarea
+                id="prompt"
+                maxlength="10000"
+                placeholder="Example: Generate questions from this topic: Operating System, process management, scheduling algorithms..."
+            ></textarea>
+
+            <div class="word-count">
+                <span id="wordCount">0</span> / 1000 words
+            </div>
+
+            <div class="options">
+
+                <div class="option">
+                    <label>Questions</label>
+
+                    <select id="questionCount">
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="30">30</option>
+                        <option value="40">40</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+
+                <div class="option">
+                    <label>Question Type</label>
+
+                    <select id="questionType">
+
+    <option value="mcq">MCQ</option>
+
+    <option value="truefalse">True/False</option>
+
+    <option value="shortanswer">Short Answer</option>
+
+</select>
+                </div>
+
+                <div class="option">
+                    <label>Difficulty</label>
+
+                    <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <button class="generate-btn" onclick="generateQuestions()">
+                ✨ Generate Questions
+            </button>
+
+            <div class="info">
+                Maximum 1000 words • Maximum 50 questions • No login required
+            </div>
+
+        </div>
+<div id="quizSection" class="quiz-section" style="display: none;">
+
+    <h2>Your AI Generated Quiz</h2>
+
+    <div id="quizContainer"></div>
+
+    <button class="submit-btn" onclick="submitQuiz()">
+        Submit Quiz
+    </button>
+
+    <div id="resultBox" class="result-box"></div>
+
+</div>
+    </main>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+
+</body>
+
+</html>

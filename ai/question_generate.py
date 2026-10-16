@@ -1,15 +1,16 @@
+
 import os
 import json
 import time
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types
 
 load_dotenv()
 
 client = genai.Client(
     api_key=os.environ.get("GEMINI_API_KEY")
 )
+
 
 def generate_questions(prompt, question_count, question_type, difficulty):
 
@@ -52,10 +53,26 @@ Do not use markdown.
 Do not write anything before or after the JSON.
 """
 
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=instruction
-    )
+    response = None
+
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=instruction
+            )
+            break
+
+        except Exception as e:
+            error_message = str(e)
+
+            if (
+                ("503" in error_message or "UNAVAILABLE" in error_message)
+                and attempt < 2
+            ):
+                time.sleep(3)
+            else:
+                raise
 
     result = response.text.strip()
 

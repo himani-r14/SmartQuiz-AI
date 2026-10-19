@@ -1,3 +1,4 @@
+
 import os
 import json
 import time
@@ -18,60 +19,22 @@ client = genai.Client(api_key=api_key)
 def generate_questions(prompt, question_count, question_type, difficulty):
 
     if question_type == "mcq":
-
         format_instruction = """
-For each question use this format:
-
-{
-    "question": "Question text",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "answer": "Correct option",
-    "explanation": "Short explanation"
-}
-
-Rules:
-- Each question must have exactly 4 options.
-- The answer must exactly match one of the options.
-- Never leave an option blank.
-- Every option must contain meaningful text.
-- Do not use empty strings.
-- All 4 options must be different.
-- Do not use null as an option.
-- Do not use whitespace-only options.
+Each question must have exactly 4 different, non-empty options.
+The answer must exactly match one of the options.
+Do not use null or blank options.
 """
 
     elif question_type == "truefalse":
-
         format_instruction = """
-For each question use this format:
-
-{
-    "question": "Statement",
-    "options": ["True", "False"],
-    "answer": "True",
-    "explanation": "Short explanation"
-}
-
-Rules:
-- The answer must be exactly "True" or "False".
-- Options must always be exactly ["True", "False"].
+Each question must have options ["True", "False"].
+The answer must be exactly "True" or "False".
 """
 
     else:
-
         format_instruction = """
-For each question use this format:
-
-{
-    "question": "Question text",
-    "options": [],
-    "answer": "Correct short answer",
-    "explanation": "Short explanation"
-}
-
-Rules:
-- Do not provide multiple-choice options.
-- Keep the answer short and clear.
+For short-answer questions, options must be [].
+Keep the answer short and clear.
 """
 
     instruction = f"""
@@ -84,42 +47,51 @@ Create exactly {question_count} questions based ONLY on this content:
 Question type: {question_type}
 Difficulty: {difficulty}
 
-Return ONLY a JSON array.
+Return ONLY a valid JSON array.
+Each object must contain:
+"question", "options", "answer", "explanation"
 
 {format_instruction}
 
-General rules:
-- Generate exactly {question_count} questions.
-- Keep questions clear and educational.
-- Questions must be based on the supplied content.
+Do not use markdown.
+Do not write anything before or after the JSON.
 """
 
     for attempt in range(3):
-
         try:
-
             response = client.models.generate_content(
-                model="gemini-3.8-flash",
+                model="gemini-2.5-flash",
                 contents=instruction,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json"
                 )
             )
 
-            result = response.text.strip()
+            if not response.text:
+                raise ValueError("Gemini returned an empty response.")
 
+            result = response.text.strip()
             questions = json.loads(result)
 
-            # Safety check for MCQ blank options
-            if question_type == "mcq":
+            if not isinstance(questions, list):
+                raise ValueError("Gemini did not return a JSON list.")
 
-                for question in questions:
+            if len(questions) != question_count:
+                raise ValueError(
+                    f"Expected {question_count} questions, "
+                    f"but received {len(questions)}."
+                )
 
+            for question in questions:
+                if not isinstance(question, dict):
+                    raise ValueError("Invalid question format.")
+
+                if question_type == "mcq":
                     options = question.get("options", [])
 
-                    # Make sure there are exactly 4 non-empty options
                     if (
-                        len(options) != 4
+                        not isinstance(options, list)
+                        or len(options) != 4
                         or any(
                             not isinstance(option, str)
                             or not option.strip()
@@ -128,26 +100,46 @@ General rules:
                         or len(set(option.strip() for option in options)) != 4
                     ):
                         raise ValueError(
-                            "Gemini generated an invalid MCQ with blank or duplicate options."
+                            "Generated MCQ has blank or duplicate options."
                         )
 
-                    # Make sure the correct answer exists in options
                     if question.get("answer") not in options:
                         raise ValueError(
-                            "Gemini generated an MCQ where the answer does not match an option."
+                            "Correct answer does not match any option."
+                        )
+
+                elif question_type == "truefalse":
+                    if question.get("options") != ["True", "False"]:
+                        raise ValueError(
+                            "Invalid True/False options."
+                        )
+
+                    if question.get("answer") not in ["True", "False"]:
+                        raise ValueError(
+                            "Invalid True/False answer."
+                        )
+
+                elif question_type == "short":
+                    if question.get("options") != []:
+                        raise ValueError(
+                            "Short-answer options must be empty."
                         )
 
             return questions
 
         except Exception as e:
+            error_message = str(e).upper()
 
-            if "503" in str(e) and attempt < 2:
+            is_temporary_error = (
+                "503" in error_message
+                or "UNAVAILABLE" in error_message
+            )
 
+            if is_temporary_error and attempt < 2:
                 print(
-                    f"Gemini temporarily busy. Retrying... ({attempt + 1}/3)"
+                    f"Gemini temporarily busy. Retrying... "
+                    f"({attempt + 1}/3)"
                 )
-
                 time.sleep(5)
-
             else:
                 raise

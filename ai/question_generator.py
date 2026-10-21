@@ -21,9 +21,9 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 
-
 def generate_questions(prompt, question_count, question_type, difficulty):
-    # Normalize question type received from the frontend
+    
+    # Normalize question type from the website
     question_type = str(question_type or "").strip().lower()
     question_type = question_type.replace("_", "-").replace(" ", "-")
 
@@ -39,13 +39,6 @@ def generate_questions(prompt, question_count, question_type, difficulty):
 
     if question_type not in ("mcq", "truefalse", "short"):
         raise ValueError(f"Invalid question type: {question_type}")
-
-    if not isinstance(question_count, int) or not 1 <= question_count <= 50:
-        raise ValueError("Question count must be between 1 and 50.")
-
-    if not isinstance(prompt, str) or not prompt.strip():
-        raise ValueError("Please enter a topic or study material.")
-
 
     if not isinstance(question_count, int) or not 1 <= question_count <= 50:
         raise ValueError("Question count must be between 1 and 50.")
